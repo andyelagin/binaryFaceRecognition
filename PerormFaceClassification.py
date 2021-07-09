@@ -8,45 +8,51 @@ from sklearn.svm import SVC
 from matplotlib import pyplot
 from matplotlib import image
 
-# load faces
+# загрузка лиц
 data = load('faces_dataset.npz')
 testX_faces = data['arr_2']
-# load face embeddings
+
+# загрузка эмбедингов
 data = load('faces-embeddings.npz')
 trainX, trainy, testX, testy = data['arr_0'], data['arr_1'], data['arr_2'], data['arr_3']
-# normalize input vectors
+
+# нормалицая входных векторов
 in_encoder = Normalizer(norm='l2')
 trainX = in_encoder.transform(trainX)
 testX = in_encoder.transform(testX)
-# label encode targets
+
+# лэйблы кодируют таргеты
 out_encoder = LabelEncoder()
 out_encoder.fit(trainy)
 trainy = out_encoder.transform(trainy)
 testy = out_encoder.transform(testy)
-# fit model
+
+# подгоняем модель
 model = SVC(kernel='linear', probability=True)
 model.fit(trainX, trainy)
 
-# test model on a random example from the test dataset
 # selection = choice([i for i in range(testX.shape[0])])
-print('Укажите номер файла: ')
+print('Укажите номер файла')
 selection = int(input())
-random_face_pixels = testX_faces[selection]
-random_face_emb = testX[selection]
-random_face_class = testy[selection]
-random_face_name = out_encoder.inverse_transform([random_face_class])
-# prediction for the face
-samples = expand_dims(random_face_emb, axis=0)
+selected_face_pixels = testX_faces[selection]
+selected_face_emb = testX[selection]
+selected_face_class = testy[selection]
+selected_face_name = out_encoder.inverse_transform([selected_face_class])
+
+# предикшн для выбранного лица
+samples = expand_dims(selected_face_emb, axis=0)
 yhat_class = model.predict(samples)
 yhat_prob = model.predict_proba(samples)
-# get name
+
+# получить имя прогнозируемого целого числа класса и вероятность этого прогноза
 class_index = yhat_class[0]
 class_probability = yhat_prob[0, class_index] * 100
 predict_names = out_encoder.inverse_transform(yhat_class)
+
+# вывод
 print('Predicted: %s (%.3f)' % (predict_names[0], class_probability))
-print('Expected: %s' % random_face_name[0])
-# plot for fun
-pyplot.imshow(random_face_pixels)
+print('Expected: %s' % selected_face_name[0])
+pyplot.imshow(selected_face_pixels)
 title = '%s (%.3f)' % (predict_names[0], class_probability)
 pyplot.title(title)
 pyplot.show()

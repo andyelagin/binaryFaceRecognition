@@ -1,8 +1,3 @@
-# # confirm mtcnn was installed correctly
-# import mtcnn
-# # print version
-# print(mtcnn.__version__)
-
 # обнаружение лица
 from os import listdir
 from os.path import isdir
@@ -20,65 +15,68 @@ def extract_face(filename, required_size=(160, 160)):
     image = image.convert('RGB')
     # конвертация в массив
     pixels = asarray(image)
+
     # создание детектора
     detector = MTCNN()
-    # обнаружение лица на изображении
+    # обнаружение лиц на изображении
     results = detector.detect_faces(pixels)
+
     # рамка для первого распознаного лица
     x1, y1, width, height = results[0]['box']
-    # Sometimes the library will return a negative pixel index. fix this by taking
-    # the absolute value of the coordinates.
+    # баг фикс
     x1, y1 = abs(x1), abs(y1)
     x2, y2 = x1 + width, y1 + height
+
     # извлечение лица
     face = pixels[y1:y2, x1:x2]
+
     # изменение размера пикселей под размер модели
     image = Image.fromarray(face)
     image = image.resize(required_size)
     face_array = asarray(image)
+
     return face_array
 
 
-# load images and extract faces for all images in a directory
+# загружает все лица в список для данной директории
 def load_faces(directory):
     faces = list()
-    # enumerate files
     for filename in listdir(directory):
-        # path
+        # путь
         path = directory + filename
-        # get face
+        # получает лицо
         face = extract_face(path)
-        # store
         faces.append(face)
     return faces
 
 
-# load a dataset that contains one subdir for each class that in turn contains images
+# берет имя каталога и обнаруживает лица для каждого подкаталога, то биж лица
+# и приваивает лейблы каждому обнаруженому лици
 def load_dataset(directory):
     X, y = list(), list()
-    # enumerate folders, on per class
     for subdir in listdir(directory):
-        # path
         path = directory + subdir + '/'
-        # skip any files that might be in the dir
+        # пропускает любые файлы, которые могут быть в каталоге
         if not isdir(path):
             continue
-        # load all faces in the subdirectory
+        # загружает все лица в поддерикторию
         faces = load_faces(path)
-        # create labels
+        # создание лейблов
         labels = [subdir for _ in range(len(faces))]
-        # summarize progress
+
         print('>loaded %d examples for class: %s' % (len(faces), subdir))
-        # store
+
         X.extend(faces)
         y.extend(labels)
     return asarray(X), asarray(y)
 
 
-# load train dataset
+# загружает обучающие данные
 trainX, trainy = load_dataset('faces_dataset/train/')
 print(trainX.shape, trainy.shape)
-# load test dataset
+
+# загружает тестовые данные
 testX, testy = load_dataset('faces_dataset/val/')
-# save arrays to one file in compressed format
+
+# сохраняет маасивы в файл
 savez_compressed('faces_dataset.npz', trainX, trainy, testX, testy)
